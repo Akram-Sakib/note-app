@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import Button from "../components/button/button";
 import Input from "../components/input/input";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 
-const genderOptions = ["Male", "Female"];
 const auth = getAuth();
+
+const genderOptions = ["Male", "Female"];
 
 export default function SignUp({ navigation }) {
   const [gender, setGender] = useState("Male");
@@ -15,10 +16,12 @@ export default function SignUp({ navigation }) {
   const [age, setAge] = useState("");
 
   const signUp = () => {
+    console.log("Clicked");
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Signed in
         const user = userCredential.user;
+        console.log(user);
         // ...
       })
       .catch((error) => {
