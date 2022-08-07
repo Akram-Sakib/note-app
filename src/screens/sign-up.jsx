@@ -2,9 +2,21 @@ import { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import Button from "../components/button/button";
 import Input from "../components/input/input";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-
-const auth = getAuth();
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  doc,
+  setDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+  getFirestore,
+  addDoc,
+} from "firebase/firestore";
+import { auth, db } from "../../App";
+import { showMessage } from "react-native-flash-message";
+import RadioInput from "../components/radioinput/radioinput";
 
 const genderOptions = ["Male", "Female"];
 
@@ -14,21 +26,36 @@ export default function SignUp({ navigation }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const [loading, setLoading] = useState(false)
 
-  const signUp = () => {
-    console.log("Clicked");
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Signed in
-        const user = userCredential.user;
-        console.log(user);
-        // ...
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        // ..
+  const signUp = async () => {
+    setLoading(true);
+    try {
+      // 1. create user with email and password
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      console.log(result);
+
+      // 2. add user profile to database
+      await addDoc(collection(db, "users"), {
+        name: name,
+        email: email,
+        age: age,
+        gender: gender,
+        uid: result.user.uid,
       });
+      setLoading(false)
+    } catch (error) {
+      console.log("Error -->", error);
+      showMessage({
+        message: "ERROR!",
+        type: "danger",
+      });
+      setLoading(false)
+    }
   };
 
   return (
@@ -43,34 +70,20 @@ export default function SignUp({ navigation }) {
           secureTextEntry
           onChangeText={(text) => setPassword(text)}
         />
-        <Input placeholder="Full Name" onChangeText={(text) => setName(text)} />
+        <Input
+          placeholder="Full Name"
+          autoCapitalize={"words"}
+          onChangeText={(text) => setName(text)}
+        />
         <Input placeholder="Age" onChangeText={(text) => setAge(text)} />
-        {genderOptions.map((option) => {
-          const selected = option === gender;
-
-          return (
-            <Pressable
-              onPress={() => setGender(option)}
-              key={option}
-              style={styles.redioContainer}
-            >
-              <View
-                style={[
-                  styles.outterCircle,
-                  selected && styles.selectedOutterCircle,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.innerCircle,
-                    selected && styles.selectedInnerCircle,
-                  ]}
-                />
-              </View>
-              <Text style={styles.radioText}>{option}</Text>
-            </Pressable>
-          );
-        })}
+        {genderOptions.map((option, index) => (
+          <RadioInput
+            ket={index}
+            label={option}
+            value={gender}
+            setValue={setGender}
+          />
+        ))}
 
         {/* <Pressable style={styles.redioContainer}>
           <View style={[styles.outterCircle, selected && styles.selectedOutterCircle]}>
@@ -110,7 +123,7 @@ const styles = StyleSheet.create({
     color: "#ccc",
     marginBottom: 25,
   },
-  redioContainer: {
+  radioContainer: {
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
